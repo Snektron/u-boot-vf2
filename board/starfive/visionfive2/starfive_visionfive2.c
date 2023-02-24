@@ -515,3 +515,17 @@ err:
 	return 0;
 }
 #endif
+
+int ft_board_setup(void *fdt, struct bd_info *bd)
+{
+	int err;
+
+	// Set the correct amount of memory
+	err = fdt_fixup_memory(fdt, gd->ram_base, gd->ram_size);
+	if (err != 0) {
+		printf("WARNING: could not fix up memory size: %s\n", fdt_strerror(err));
+		return err;
+	}
+
+	return 0;
+}
