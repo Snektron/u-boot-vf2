@@ -516,15 +516,54 @@ err:
 }
 #endif
 
+static void fix_ethernet(void *fdt, const char *path)
+{
+	int nodeoffset;
+	int err;
+
+	nodeoffset = fdt_path_offset(fdt, path);
+	if (nodeoffset < 0) {
+		err = -FDT_ERR_NOTFOUND;
+		goto fail;
+	}
+
+	err = fdt_setprop_u32(fdt, nodeoffset, "tx_inverted_10", 0);
+	if (err < 0)
+		goto fail;
+
+	err = fdt_setprop_u32(fdt, nodeoffset, "tx_inverted_100", 0);
+	if (err < 0)
+		goto fail;
+
+	err = fdt_setprop_u32(fdt, nodeoffset, "tx_inverted_1000", 0);
+	if (err < 0)
+		goto fail;
+
+	err = fdt_setprop_u32(fdt, nodeoffset, "tx_delay_sel", 9);
+	if (err < 0)
+		goto fail;
+
+	return;
+fail:
+	printf("WARNING: could not fix up ethernet %s: %s\n", path, fdt_strerror(err));
+}
+
 int ft_board_setup(void *fdt, struct bd_info *bd)
 {
 	int err;
+	int chip_type;
 
 	// Set the correct amount of memory
 	err = fdt_fixup_memory(fdt, gd->ram_base, gd->ram_size);
 	if (err != 0) {
 		printf("WARNING: could not fix up memory size: %s\n", fdt_strerror(err));
-		return err;
+	}
+
+	// Update the ethernet nodes on chip type A
+	chip_type = get_chip_type();
+	if (chip_type == CHIP_A) {
+		fix_ethernet(fdt, "/soc/ethernet@16030000/ethernet-phy@0");
+		fix_ethernet(fdt, "/soc/ethernet@16040000/ethernet-phy@1");
 	}
 
 	return 0;
